@@ -1,13 +1,16 @@
 # Hi, I'm Shakhriyor 👋
 
-🎓 Business Information Systems student building at the intersection of **web development, cybersecurity, and AI**.
+📋 **IT Program Manager** with a hands-on technical background — I lead IT projects end-to-end, and I write code, so I understand what my teams build.
 
-- 🛡️ Built **[XavfLearn](https://github.com/Shakhti17/XavfLearnMVP)** — a cybersecurity awareness e-learning platform (Node.js, Express, MongoDB, JWT)
-- 🤖 Exploring **AI** and how it can be applied to real products
-- 🌱 Currently deepening my skills in backend development and system design
-- 📫 Reach me at **info@aistation.uz**
+- 🎯 Managing IT programs and projects: planning, delivery, stakeholders, risk
+- 🛠️ Staying hands-on — built **[XavfLearn](https://github.com/Shakhti17/XavfLearnMVP)**, a cybersecurity awareness e-learning platform (Node.js, Express, MongoDB, JWT)
+- 🤖 Exploring **AI** and how it can improve project delivery and real products
 
-## 🧰 Tech I work with
+## 🧭 Program & Project Management
+
+`IT Project Delivery` · `Agile & Scrum` · `Stakeholder Management` · `Risk Management` · `Roadmapping & Planning`
+
+## 🧰 Technical Toolbox
 
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)
@@ -25,4 +28,4 @@ A cybersecurity awareness platform that teaches everyday users to recognize digi
 
 ---
 
-*Always learning, always building.* ⚡
+*I manage the roadmap — and I can read the pull request.* ⚡
