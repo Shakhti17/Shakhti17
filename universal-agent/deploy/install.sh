@@ -67,8 +67,9 @@ info "$(docker --version)"
 # ---------- 3. code ----------
 say "Getting the code ($BRANCH)"
 if [ -d "$INSTALL_DIR/.git" ]; then
+  # FETCH_HEAD works even for single-branch clones made from another branch.
   git -C "$INSTALL_DIR" fetch -q origin "$BRANCH"
-  git -C "$INSTALL_DIR" checkout -q -B "$BRANCH" "origin/$BRANCH"
+  git -C "$INSTALL_DIR" checkout -q -B "$BRANCH" FETCH_HEAD
 else
   git clone -q --branch "$BRANCH" --single-branch "$REPO_URL" "$INSTALL_DIR"
 fi
