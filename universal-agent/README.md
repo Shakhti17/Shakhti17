@@ -110,7 +110,7 @@ keeps the developer agent's commands inside a container.
 **On a VPS (Ubuntu/Debian), one command:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Shakhti17/Shakhti17/claude/quirky-babbage-35531k/universal-agent/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Shakhti17/Shakhti17/main/universal-agent/deploy/install.sh | sudo bash
 ```
 
 It adds swap on small servers, installs Docker, downloads the code to `/opt/ofis`, asks for

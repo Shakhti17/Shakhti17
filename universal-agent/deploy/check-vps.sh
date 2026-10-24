@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Read-only check: can this server run Ofis? Changes nothing.
-#   curl -fsSL https://raw.githubusercontent.com/Shakhti17/Shakhti17/claude/quirky-babbage-35531k/universal-agent/deploy/check-vps.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Shakhti17/Shakhti17/main/universal-agent/deploy/check-vps.sh | sh
 # or copy this file to the server and run: sh check-vps.sh
 
 ok()   { printf '  [ok]   %s\n' "$1"; }

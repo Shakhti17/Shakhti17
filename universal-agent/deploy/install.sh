@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-command setup (and update) of Ofis on an Ubuntu/Debian server.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Shakhti17/Shakhti17/claude/quirky-babbage-35531k/universal-agent/deploy/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/Shakhti17/Shakhti17/main/universal-agent/deploy/install.sh | sudo bash
 #
 # It asks for anything it needs. To skip the questions, pass values in:
 #   ... | sudo ANTHROPIC_API_KEY=sk-ant-... APP_PASSWORD=... DOMAIN=ofis.example.uz bash
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/Shakhti17/Shakhti17.git}"
-BRANCH="${BRANCH:-claude/quirky-babbage-35531k}"
+BRANCH="${BRANCH:-main}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/ofis}"
 APP_DIR="$INSTALL_DIR/universal-agent"
 
