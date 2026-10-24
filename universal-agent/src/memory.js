@@ -5,7 +5,7 @@
 //   procedural - how to do the job better (lessons from the evaluator)
 // Working memory is the per-run state the orchestrator keeps in src/agent.js.
 import fs from "node:fs/promises";
-import path from "node:path";
+import { withLock, writeFileAtomic } from "./fsutil.js";
 
 const KINDS = ["semantic", "episodic", "procedural"];
 
@@ -42,8 +42,8 @@ export class MemoryStore {
     const clean = text.trim();
     if (!clean || this.data[kind].some((m) => m.text === clean)) return;
     this.data[kind].push({ text: clean, created: new Date().toISOString(), ...meta });
-    await fs.mkdir(path.dirname(this.file), { recursive: true });
-    await fs.writeFile(this.file, JSON.stringify(this.data, null, 2));
+    // Serialised and atomic: parallel specialists save memories at the same time.
+    await withLock(this.file, () => writeFileAtomic(this.file, JSON.stringify(this.data, null, 2)));
   }
 
   /** Keyword-overlap retrieval. Procedural lessons always rank (they apply to every plan). */

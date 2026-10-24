@@ -138,3 +138,24 @@ test("credentialSource recognises API keys, identity federation and nothing", as
   assert.notEqual(credentialSource(partial), "identity federation");
   assert.ok([null, "profile"].includes(credentialSource(home)));
 });
+
+test("parallel task-board updates are all kept (no lost writes or corrupted JSON)", async () => {
+  const { createPmTools } = await import("../src/tools/pm.js");
+  const dir = await tmp();
+  const board = createPmTools(dir).find((t) => t.name === "manage_tasks");
+  await Promise.all(Array.from({ length: 10 }, (_, i) => board.run({ action: "add", title: `Task ${i}` })));
+  const saved = JSON.parse(await fs.readFile(path.join(dir, "pm/board.json"), "utf8"));
+  assert.equal(saved.tasks.length, 10);
+  assert.equal(new Set(saved.tasks.map((t) => t.id)).size, 10);
+  await fs.rm(dir, { recursive: true });
+});
+
+test("parallel memory saves are all persisted", async () => {
+  const dir = await tmp();
+  const file = path.join(dir, "memory.json");
+  const store = await MemoryStore.open(file);
+  await Promise.all(Array.from({ length: 10 }, (_, i) => store.add("semantic", `Fact number ${i}`)));
+  const reopened = await MemoryStore.open(file);
+  assert.equal(reopened.data.semantic.length, 10);
+  await fs.rm(dir, { recursive: true });
+});

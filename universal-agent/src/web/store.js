@@ -2,6 +2,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { withLock, writeFileAtomic } from "../fsutil.js";
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -43,11 +44,8 @@ export class ConversationStore {
 
   async save(conversation) {
     conversation.updated = new Date().toISOString();
-    await fs.mkdir(this.dir, { recursive: true });
     const target = this.file(conversation.id);
-    const tmp = `${target}.${process.pid}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(conversation, null, 2));
-    await fs.rename(tmp, target);
+    await withLock(target, () => writeFileAtomic(target, JSON.stringify(conversation, null, 2)));
     return conversation;
   }
 

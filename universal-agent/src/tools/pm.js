@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { withLock, writeFileAtomic } from "../fsutil.js";
 
 function addWorkingDays(date, days) {
   const d = new Date(date);
@@ -228,18 +229,17 @@ export function createPmTools(workspace) {
         due: z.string().optional().describe("YYYY-MM-DD"),
         notes: z.string().optional(),
       }),
-      run: async (input) => {
-        try {
-          const { board, message } = applyBoardAction(await loadBoard(), input);
-          if (input.action !== "list") {
-            await fs.mkdir(path.dirname(boardFile), { recursive: true });
-            await fs.writeFile(boardFile, JSON.stringify(board, null, 2));
+      run: (input) =>
+        // Parallel tool calls must not overwrite each other's board changes.
+        withLock(boardFile, async () => {
+          try {
+            const { board, message } = applyBoardAction(await loadBoard(), input);
+            if (input.action !== "list") await writeFileAtomic(boardFile, JSON.stringify(board, null, 2));
+            return message;
+          } catch (err) {
+            return `Error: ${err.message}`;
           }
-          return message;
-        } catch (err) {
-          return `Error: ${err.message}`;
-        }
-      },
+        }),
     }),
   ];
 }
