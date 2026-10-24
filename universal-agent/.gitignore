@@ -2,3 +2,6 @@ node_modules/
 workspace/
 data/
 .env
+__pycache__/
+*.pyc
+ofis_telegram.json

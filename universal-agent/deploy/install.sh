@@ -105,6 +105,12 @@ ENV
 else
   info "Keeping existing settings in $APP_DIR/.env"
 fi
+# An API token lets bots (e.g. the Telegram bridge) use Ofis; create one if missing.
+if ! grep -qE '^OFIS_API_TOKEN=.{32,}' .env; then
+  sed -i '/^OFIS_API_TOKEN=/d' .env
+  echo "OFIS_API_TOKEN=$(openssl rand -hex 32)" >> .env
+  info "Created an API token for bots (OFIS_API_TOKEN in $APP_DIR/.env)"
+fi
 DOM=$(grep -E '^DOMAIN=' .env | cut -d= -f2-)
 [ -n "$DOM" ] || die "DOMAIN is empty in $APP_DIR/.env"
 
@@ -177,6 +183,13 @@ if [ "${READY:-0}" != 1 ]; then
   die "Ofis did not start; the logs above show why"
 fi
 
+# A docker-compose.override.yml here means another proxy on this server (e.g. Dokploy's
+# Traefik) was set up to serve Ofis over HTTPS, so taken ports 80/443 are expected.
+if [ -n "$BLOCKED" ] && [ -f docker-compose.override.yml ]; then
+  info "Ports$BLOCKED belong to this server's existing proxy, which serves Ofis over HTTPS."
+  BLOCKED=""
+fi
+
 if [ -n "$BLOCKED" ]; then
   say "Ofis is running, but HTTPS could not start"
   info "Port(s)$BLOCKED are taken by another program (listed above). Caddy needs ports 80 and 443"
@@ -190,6 +203,7 @@ info "Sign in with the password you set (APP_PASSWORD in $APP_DIR/.env)."
 info "The HTTPS certificate is issued on the first visit and can take up to a minute."
 info "If the page doesn't load, make sure ports 80 and 443 are open in your VPS provider's firewall."
 info ""
+info "Bots:      API token is OFIS_API_TOKEN in $APP_DIR/.env (see integrations/telegram)"
 info "Logs:      cd $APP_DIR && docker compose logs -f"
 info "Update:    run this script again"
 info "Stop:      cd $APP_DIR && docker compose --profile https down"

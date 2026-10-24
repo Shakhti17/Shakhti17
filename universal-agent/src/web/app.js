@@ -29,9 +29,9 @@ const CSP = [
   "form-action 'self'",
 ].join("; ");
 
-export function createApp({ workspace, dataDir, memory, password, sessionSecret, trustProxy = false }) {
+export function createApp({ workspace, dataDir, memory, password, sessionSecret, apiToken = "", trustProxy = false }) {
   const app = express();
-  const auth = createAuth({ password, secret: sessionSecret });
+  const auth = createAuth({ password, secret: sessionSecret, apiToken });
   const store = new ConversationStore(dataDir);
   const hub = new Hub();
 

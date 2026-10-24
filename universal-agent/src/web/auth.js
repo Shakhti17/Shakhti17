@@ -1,4 +1,5 @@
-// Single-owner password login with a signed, HttpOnly session cookie.
+// Single-owner password login with a signed, HttpOnly session cookie, plus an
+// optional API token (Authorization: Bearer ...) for bots and other programs.
 import crypto from "node:crypto";
 
 const COOKIE = "ofis_session";
@@ -22,8 +23,9 @@ function readCookie(req, name) {
   return null;
 }
 
-export function createAuth({ password, secret = crypto.randomBytes(32).toString("hex") }) {
+export function createAuth({ password, secret = crypto.randomBytes(32).toString("hex"), apiToken = "" }) {
   if (!password) throw new Error("APP_PASSWORD is required");
+  if (apiToken && apiToken.length < 32) throw new Error("OFIS_API_TOKEN must be at least 32 characters");
   const failures = new Map(); // ip -> { count, until }
 
   const sign = (payload) => b64url(crypto.createHmac("sha256", secret).update(payload).digest());
@@ -52,8 +54,16 @@ export function createAuth({ password, secret = crypto.randomBytes(32).toString(
     );
   }
 
+  function bearerOk(req) {
+    const header = req.headers.authorization ?? "";
+    if (!apiToken || !header.startsWith("Bearer ")) return false;
+    return safeEqual(header.slice(7).trim(), apiToken);
+  }
+
+  const authenticated = (req) => verify(readCookie(req, COOKIE)) || bearerOk(req);
+
   return {
-    isAuthenticated: (req) => verify(readCookie(req, COOKIE)),
+    isAuthenticated: authenticated,
 
     login(req, res) {
       const ip = req.ip ?? "unknown";
@@ -77,7 +87,7 @@ export function createAuth({ password, secret = crypto.randomBytes(32).toString(
     },
 
     require(req, res, next) {
-      if (verify(readCookie(req, COOKIE))) return next();
+      if (authenticated(req)) return next();
       res.status(401).json({ error: "Sign in to continue." });
     },
   };

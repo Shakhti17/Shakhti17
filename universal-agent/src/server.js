@@ -22,6 +22,10 @@ if (credentialProblem(env)) {
   console.error(credentialProblem(env));
   process.exit(1);
 }
+if (env.OFIS_API_TOKEN && env.OFIS_API_TOKEN.length < 32) {
+  console.error("OFIS_API_TOKEN must be at least 32 characters (generate one with: openssl rand -hex 32).");
+  process.exit(1);
+}
 if (!env.SESSION_SECRET) {
   console.warn("SESSION_SECRET is not set: you will need to sign in again after every restart.");
 }
@@ -36,6 +40,7 @@ const { app } = createApp({
   memory,
   password: env.APP_PASSWORD,
   sessionSecret: env.SESSION_SECRET,
+  apiToken: env.OFIS_API_TOKEN ?? "",
   trustProxy: env.TRUST_PROXY === "1",
 });
 
@@ -44,4 +49,5 @@ const host = env.HOST ?? "127.0.0.1";
 app.listen(port, host, () => {
   console.log(`Ofis is running at http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
   console.log(`Workspace: ${workspace}\nData: ${dataDir}\nAnthropic credentials: ${credentials}`);
+  console.log(`API token for bots: ${env.OFIS_API_TOKEN ? "enabled" : "off (set OFIS_API_TOKEN to enable)"}`);
 });
