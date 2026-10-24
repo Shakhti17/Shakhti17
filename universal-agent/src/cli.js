@@ -2,8 +2,6 @@
 // Usage:
 //   node src/cli.js                       interactive chat with the team
 //   node src/cli.js "Build a todo API"    one request, then exit
-import { existsSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { parseArgs } from "node:util";
@@ -11,6 +9,7 @@ import { Team } from "./team.js";
 import { AGENTS } from "./agents.js";
 import { MemoryStore } from "./memory.js";
 import { describeError } from "./errors.js";
+import { credentialSource, MISSING_CREDENTIALS } from "./credentials.js";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -43,12 +42,8 @@ if (values.help) {
   process.exit(0);
 }
 
-const hasCredentials =
-  process.env.ANTHROPIC_API_KEY ||
-  process.env.ANTHROPIC_AUTH_TOKEN ||
-  existsSync(path.join(os.homedir(), ".config", "anthropic"));
-if (!hasCredentials) {
-  console.error("No Anthropic credentials found: set ANTHROPIC_API_KEY (or run `ant auth login`).");
+if (!credentialSource()) {
+  console.error(MISSING_CREDENTIALS);
   process.exit(1);
 }
 

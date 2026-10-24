@@ -1,0 +1,25 @@
+// Detects whether the Anthropic SDK will find credentials, so the CLI and the
+// server can fail early with a clear message instead of on the first request.
+import { existsSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+export function credentialSource(env = process.env) {
+  if (env.ANTHROPIC_API_KEY) return "api key";
+  if (env.ANTHROPIC_AUTH_TOKEN) return "auth token";
+  // Workload identity federation: the SDK exchanges a short-lived identity token
+  // from the cloud/CI provider for an access token, so no API key is stored.
+  const federation =
+    env.ANTHROPIC_FEDERATION_RULE_ID &&
+    env.ANTHROPIC_ORGANIZATION_ID &&
+    env.ANTHROPIC_SERVICE_ACCOUNT_ID &&
+    (env.ANTHROPIC_IDENTITY_TOKEN_FILE || env.ANTHROPIC_IDENTITY_TOKEN);
+  if (federation) return "identity federation";
+  if (env.ANTHROPIC_PROFILE || existsSync(path.join(os.homedir(), ".config", "anthropic"))) return "profile";
+  return null;
+}
+
+export const MISSING_CREDENTIALS =
+  "No Anthropic credentials found. Set ANTHROPIC_API_KEY, configure identity federation " +
+  "(ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID, ANTHROPIC_SERVICE_ACCOUNT_ID and " +
+  "ANTHROPIC_IDENTITY_TOKEN_FILE), or run `ant auth login`.";

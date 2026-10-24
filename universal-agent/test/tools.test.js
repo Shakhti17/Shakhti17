@@ -121,3 +121,20 @@ test("MemoryStore persists and retrieves", async () => {
   assert.equal(reopened.search("landing page for the dental CRM")[0].kind, "semantic");
   await fs.rm(dir, { recursive: true });
 });
+
+test("credentialSource recognises API keys, identity federation and nothing", async () => {
+  const { credentialSource } = await import("../src/credentials.js");
+  const home = { HOME: "/nonexistent" };
+  assert.equal(credentialSource({ ANTHROPIC_API_KEY: "sk" }), "api key");
+  const federation = {
+    ANTHROPIC_FEDERATION_RULE_ID: "fdrl_1",
+    ANTHROPIC_ORGANIZATION_ID: "org",
+    ANTHROPIC_SERVICE_ACCOUNT_ID: "svac_1",
+    ANTHROPIC_IDENTITY_TOKEN_FILE: "/var/run/token",
+  };
+  assert.equal(credentialSource(federation), "identity federation");
+  // All four federation variables are needed.
+  const { ANTHROPIC_SERVICE_ACCOUNT_ID, ...partial } = federation;
+  assert.notEqual(credentialSource(partial), "identity federation");
+  assert.ok([null, "profile"].includes(credentialSource(home)));
+});

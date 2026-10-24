@@ -125,13 +125,21 @@ so conversations, memory and files survive redeploys.
 
 | Variable | |
 |---|---|
-| `ANTHROPIC_API_KEY` | required |
+| `ANTHROPIC_API_KEY` | required, unless you use identity federation (below) |
 | `APP_PASSWORD` | required, at least 8 characters; use a long passphrase |
 | `SESSION_SECRET` | keeps you signed in across restarts (`openssl rand -hex 32`) |
 | `TRUST_PROXY` | `1` behind an HTTPS proxy, so the session cookie is marked Secure |
 | `PORT`, `HOST` | default `3000`, `127.0.0.1` (`0.0.0.0` in Docker) |
 | `DATA_DIR`, `WORKSPACE_DIR` | default `./data`, `./workspace` |
 | `AGENT_MODEL` | default `claude-opus-5-5` |
+
+**No API key on Google Cloud, AWS, Azure or GitHub Actions:** these platforms can give the app
+short-lived identity tokens, which the Anthropic SDK exchanges for access automatically
+(identity federation). Set it up in the Claude Console, then set
+`ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`, `ANTHROPIC_SERVICE_ACCOUNT_ID` and
+`ANTHROPIC_IDENTITY_TOKEN_FILE` instead of `ANTHROPIC_API_KEY` (an API key, if also set, takes
+precedence, so remove it). Your laptop, Render, Railway and plain VPS hosts have no identity
+provider, so use an API key there.
 
 ## Safety
 
