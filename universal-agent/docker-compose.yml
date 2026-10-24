@@ -1,0 +1,15 @@
+# docker compose up -d   then open http://localhost:3000
+# Put your secrets in a .env file next to this one (see README).
+services:
+  ofis:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: .env
+    volumes:
+      - ofis-data:/data
+      - ofis-workspace:/workspace
+volumes:
+  ofis-data:
+  ofis-workspace:

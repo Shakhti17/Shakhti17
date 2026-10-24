@@ -7,11 +7,10 @@ import os from "node:os";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { parseArgs } from "node:util";
-import Anthropic from "@anthropic-ai/sdk";
 import { Team } from "./team.js";
 import { AGENTS } from "./agents.js";
 import { MemoryStore } from "./memory.js";
-import { RefusalError } from "./llm.js";
+import { describeError } from "./errors.js";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -107,13 +106,7 @@ async function ask(request) {
     const { answer } = await team.handle(request);
     console.log(`\n${answer}\n`);
   } catch (err) {
-    if (err instanceof RefusalError) console.error(`Stopped: ${err.message}`);
-    else if (err instanceof Anthropic.AuthenticationError) {
-      console.error("Authentication failed: set ANTHROPIC_API_KEY (or run `ant auth login`).");
-    } else if (err instanceof Anthropic.RateLimitError) console.error("Rate limited by the API - wait a moment and try again.");
-    else if (err instanceof Anthropic.APIConnectionError) console.error(`Could not reach the Anthropic API: ${err.message}`);
-    else if (err instanceof Anthropic.APIError) console.error(`API error ${err.status}: ${err.message}`);
-    else console.error(err);
+    console.error(describeError(err));
     return false;
   }
   return true;

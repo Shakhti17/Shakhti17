@@ -1,26 +1,13 @@
-# Universal Agent 🧑‍💼👩‍💻📣
+# Ofis: your AI team 🧑‍💼👩‍💻📣
 
-One chat interface to an **AI team**: a Program Manager, a Senior Developer and a Marketing
-Manager, coordinated by a team lead. Ask for anything (a project plan, a working app, a launch
-campaign, or all three) and the right specialists pick it up, use real tools, review each
-other's work and remember what they learn about your business.
+A private web platform (and terminal app) for an **AI team**: a Program Manager, a Senior
+Developer and a Marketing Manager, coordinated by a team lead. Ask for anything (a project
+plan, a working app, a launch campaign, or all three) and the right specialists pick it up,
+use real tools, review each other's work and remember what they learn about your business.
 
-```
-you › Build a landing page for my dental-clinic CRM and plan the launch
-
-→ Team plan:
-   T1 Program Manager: Launch plan and timeline
-   T2 Senior Developer: Landing page (after T1)
-   T3 Marketing Manager: Positioning, copy and launch campaign (after T1)
-   [Program Manager T1] compute_schedule
-   [Program Manager T1] manage_tasks add
-   [Senior Developer T2] write_file landing-page/index.html
-   [Marketing Manager T3] web_search dental practice management software pricing
-   [Senior Developer T2] run_command npm test
-   [Senior Developer T2] review 4.5/5 - approved
-→ Team lead: summarising
-```
-*(Illustrative output; the actual plan, tools and scores depend on the request.)*
+![Ofis chat: the team works on a launch while the activity panel shows each specialist's steps in their own lane, and the developer waits for approval to run a command](docs/ofis-chat.png)
+*Screenshot with sample data: the activity panel on the right shows who is doing what, one
+colored lane per specialist; the developer is waiting for approval to run a command.*
 
 ## The team
 
@@ -68,35 +55,42 @@ flowchart LR
     M[(Memory)] <-.-> R & S & RV
 ```
 
-## Setup
+## Run it on your computer
 
-Requires Node.js 20+ and an [Anthropic API key](https://platform.claude.com/).
+Requires Node.js 20+ and an [Anthropic API key](https://platform.claude.com/) (billed per use,
+separately from a Claude.ai subscription).
 
 ```bash
 cd universal-agent
 npm install
 export ANTHROPIC_API_KEY=sk-ant-...
+export APP_PASSWORD='choose-a-long-password'
+npm start
 ```
 
-## Usage
+Open http://localhost:3000 and sign in with your password. (Windows PowerShell:
+`$env:ANTHROPIC_API_KEY="sk-ant-..."` and `$env:APP_PASSWORD="..."`.)
 
-Interactive chat (the team keeps the conversation context between messages):
+### What's in the web app
+
+- **Chat**: talk to the team. Conversations are saved; the team keeps context within each one.
+  Toggle web search and review per message.
+- **Activity**: a live view of each step, in a lane per specialist, so you can see parallel
+  work and reviews as they happen. Each reply keeps its steps under *Show steps*.
+- **Approvals**: when the developer needs to run a command, you get a card with the command
+  and the reason. Nothing runs until you click *Run command*.
+- **Files**: browse, read and download everything the team created in the workspace.
+- **Task board**: the Program Manager's board (to do, in progress, blocked, done).
+- **Memory**: what the team knows about your business, lessons from reviews, past requests.
+
+![Task board with sample data](docs/ofis-board.png)
+
+### Prefer the terminal?
 
 ```bash
-node src/cli.js
+npm run chat                                    # interactive chat
+npm run chat -- "Write a PRD for a feedback portal"   # one request
 ```
-
-One request, then exit:
-
-```bash
-node src/cli.js "Write a PRD for a customer feedback portal"
-node src/cli.js "Build a REST API for a todo app with tests"
-node src/cli.js "Create a 4-week LinkedIn content calendar for our CRM launch"
-node src/cli.js "We're launching a time-tracking app in January. Plan it, build an MVP and prepare the launch."
-```
-
-Tell it about your business once ("We sell a CRM for dental clinics in Uzbekistan; our stack is
-Node.js and MongoDB") and the specialists save it to memory and use it from then on.
 
 | Option | Default | |
 |---|---|---|
@@ -106,14 +100,52 @@ Node.js and MongoDB") and the specialists save it to memory and use it from then
 | `--no-web` | web on | disable web search |
 | `--no-review` | review on | skip the reviewer loop: faster and cheaper, lower quality |
 
-`AGENT_MODEL` overrides the model (default `claude-opus-5-5`).
+The web app and the terminal share the same workspace and memory when run from the same folder.
+
+## Put it online
+
+Run it on a server so you can use it from your phone or any browser. The included Docker setup
+keeps the developer agent's commands inside a container.
+
+**On a VPS (any Linux server with Docker):**
+
+```bash
+git clone https://github.com/Shakhti17/Shakhti17.git && cd Shakhti17/universal-agent
+cp .env.example .env        # fill in ANTHROPIC_API_KEY, APP_PASSWORD, SESSION_SECRET
+docker compose up -d
+```
+
+The app listens on `127.0.0.1:3000`. Put an HTTPS reverse proxy in front of it (for example
+Caddy: `ofis.yourdomain.uz { reverse_proxy 127.0.0.1:3000 }`) and set `TRUST_PROXY=1`.
+
+**On Render or Railway:** create a service from this repository with `universal-agent` as the
+root directory and the Dockerfile as the build. Add the environment variables from
+`.env.example` (with `TRUST_PROXY=1`), and attach persistent disks at `/data` and `/workspace`
+so conversations, memory and files survive redeploys.
+
+| Variable | |
+|---|---|
+| `ANTHROPIC_API_KEY` | required |
+| `APP_PASSWORD` | required, at least 8 characters; use a long passphrase |
+| `SESSION_SECRET` | keeps you signed in across restarts (`openssl rand -hex 32`) |
+| `TRUST_PROXY` | `1` behind an HTTPS proxy, so the session cookie is marked Secure |
+| `PORT`, `HOST` | default `3000`, `127.0.0.1` (`0.0.0.0` in Docker) |
+| `DATA_DIR`, `WORKSPACE_DIR` | default `./data`, `./workspace` |
+| `AGENT_MODEL` | default `claude-opus-5-5` |
 
 ## Safety
 
-- File tools only read and write inside the workspace.
-- **Every shell command asks for your approval** with the reason, unless you pass `--yes`.
-  Commands run on your machine (not in a sandbox), inside the workspace folder, with a 2-minute
-  timeout, and never see your `ANTHROPIC_*` credentials. Only use `--yes` inside a container or VM.
+- **One owner, one password.** Sign-in sets an HttpOnly, SameSite=Strict session cookie;
+  repeated wrong passwords are locked out for 15 minutes. Always serve it over HTTPS when online.
+- **Every shell command needs your approval**, in the browser or the terminal (unless you
+  pass `--yes` to the CLI). Unanswered approvals are declined after 10 minutes.
+- Commands run inside the workspace folder with a 2-minute timeout and never see your
+  `ANTHROPIC_*` credentials. Locally they run on your machine; online, run the Docker image so
+  they stay inside the container.
+- File tools only read and write inside the workspace. The web app shows files as plain text
+  and never renders them as pages, so code the team writes can't run in your session.
+- Replies are rendered from Markdown and sanitised; the page has a strict Content Security
+  Policy with no third-party scripts, fonts or trackers.
 - The marketing manager drafts; it never publishes or sends anything.
 
 ## Cost
@@ -134,6 +166,9 @@ npm test
 - **End-to-end test** runs a full team request against a local mock of the Messages API, so you
   need no API key. It checks routing, parallel waves, real file writes and commands, the review
   loop, memory and conversation context.
+- **Web platform test** drives the HTTP API the same way the browser does: sign-in and lockout,
+  a chat run streamed over Server-Sent Events with a command approved mid-run, saved
+  conversations, file viewing and download, path safety and security headers.
 
 ## Extending
 

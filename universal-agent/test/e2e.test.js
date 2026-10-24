@@ -3,29 +3,12 @@
 // execution, review loops and memory are exercised offline without an API key.
 import test from "node:test";
 import assert from "node:assert/strict";
-import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { describe, json, startMockApi, text, toolCall } from "./mock-api.js";
 
-const requests = [];
-const threads = new Map();
-let nextId = 0;
 let developerReviews = 0;
-
-const message = (content, stop_reason = "end_turn") => ({
-  id: `msg_${nextId++}`,
-  type: "message",
-  role: "assistant",
-  model: "claude-opus-5-5",
-  content,
-  stop_reason,
-  stop_sequence: null,
-  usage: { input_tokens: 10, output_tokens: 10 },
-});
-const text = (t) => message([{ type: "text", text: t }]);
-const json = (o) => text(JSON.stringify(o));
-const toolCall = (name, input) => message([{ type: "tool_use", id: `toolu_${nextId}`, name, input }], "tool_use");
 
 const plan = {
   mode: "team",
@@ -41,11 +24,7 @@ const plan = {
 };
 
 function respond(body) {
-  const system = typeof body.system === "string" ? body.system : JSON.stringify(body.system ?? "");
-  const first = body.messages[0].content;
-  const toolResults = body.messages.flatMap((m) =>
-    Array.isArray(m.content) ? m.content.filter((b) => b.type === "tool_result") : [],
-  );
+  const { system, first, toolResults } = describe(body);
 
   if (system.includes("You are the team lead of an AI team")) {
     if (first.includes("<user_message>\nLaunch a todo app")) return json(plan);
@@ -82,62 +61,10 @@ function respond(body) {
   return null;
 }
 
-function writeStream(res, msg) {
-  const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  res.writeHead(200, { "content-type": "text/event-stream" });
-  send("message_start", { type: "message_start", message: { ...msg, content: [], stop_reason: null } });
-  msg.content.forEach((block, index) => {
-    if (block.type === "text") {
-      send("content_block_start", { type: "content_block_start", index, content_block: { type: "text", text: "" } });
-      send("content_block_delta", { type: "content_block_delta", index, delta: { type: "text_delta", text: block.text } });
-    } else {
-      send("content_block_start", { type: "content_block_start", index, content_block: { ...block, input: {} } });
-      send("content_block_delta", {
-        type: "content_block_delta",
-        index,
-        delta: { type: "input_json_delta", partial_json: JSON.stringify(block.input) },
-      });
-    }
-    send("content_block_stop", { type: "content_block_stop", index });
-  });
-  send("message_delta", { type: "message_delta", delta: { stop_reason: msg.stop_reason, stop_sequence: null }, usage: { output_tokens: 10 } });
-  send("message_stop", { type: "message_stop" });
-  res.end();
-}
-
-// The SDK's tool runner continues a conversation server-side by sending only the
-// new messages plus `thread.previous_message_id`; rebuild the full request here.
-function expand(body) {
-  if (body.thread?.type !== "continue") return body;
-  const prev = threads.get(body.thread.previous_message_id);
-  if (!prev) throw new Error(`unknown thread ${body.thread.previous_message_id}`);
-  return { ...prev, ...body, messages: [...prev.messages, ...body.messages] };
-}
-
-const server = http.createServer(async (req, res) => {
-  let raw = "";
-  for await (const chunk of req) raw += chunk;
-  try {
-    const body = expand(JSON.parse(raw));
-    requests.push({ headers: req.headers, body });
-    const reply = respond(body);
-    if (!reply) throw new Error("unmocked request");
-    threads.set(reply.id, { ...body, messages: [...body.messages, { role: "assistant", content: reply.content }] });
-    if (body.stream) return writeStream(res, reply);
-    res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(reply));
-  } catch (err) {
-    // 400 is not retried by the SDK, so a broken mock fails fast instead of hanging.
-    res.writeHead(400, { "content-type": "application/json" });
-    res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: err.message } }));
-  }
-});
-
 test("the team handles a multi-discipline request end to end", async (t) => {
-  await new Promise((resolve) => server.listen(0, resolve));
-  t.after(() => server.close());
-  process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${server.address().port}`;
-  process.env.ANTHROPIC_API_KEY = "test-key";
-  delete process.env.ANTHROPIC_AUTH_TOKEN;
+  const mock = await startMockApi(respond);
+  t.after(() => mock.close());
+  const { requests } = mock;
 
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ua-e2e-"));
   t.after(() => fs.rm(dir, { recursive: true }));
