@@ -1,5 +1,6 @@
-# docker compose up -d   then open http://localhost:3000
-# Put your secrets in a .env file next to this one (see README).
+# Local:   docker compose up -d                  -> http://localhost:3000
+# Server:  docker compose --profile https up -d  -> https://$DOMAIN (Caddy gets the certificate)
+# Secrets and settings live in a .env file next to this one (see .env.example).
 services:
   ofis:
     build: .
@@ -10,6 +11,24 @@ services:
     volumes:
       - ofis-data:/data
       - ofis-workspace:/workspace
+
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [ofis]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
 volumes:
   ofis-data:
   ofis-workspace:
+  caddy-data:
+  caddy-config:

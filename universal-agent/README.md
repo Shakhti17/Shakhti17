@@ -107,16 +107,21 @@ The web app and the terminal share the same workspace and memory when run from t
 Run it on a server so you can use it from your phone or any browser. The included Docker setup
 keeps the developer agent's commands inside a container.
 
-**On a VPS (any Linux server with Docker):**
+**On a VPS (Ubuntu/Debian), one command:**
 
 ```bash
-git clone https://github.com/Shakhti17/Shakhti17.git && cd Shakhti17/universal-agent
-cp .env.example .env        # fill in ANTHROPIC_API_KEY, APP_PASSWORD, SESSION_SECRET
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/Shakhti17/Shakhti17/claude/quirky-babbage-35531k/universal-agent/deploy/install.sh | sudo bash
 ```
 
-The app listens on `127.0.0.1:3000`. Put an HTTPS reverse proxy in front of it (for example
-Caddy: `ofis.yourdomain.uz { reverse_proxy 127.0.0.1:3000 }`) and set `TRUST_PROXY=1`.
+It adds swap on small servers, installs Docker, downloads the code to `/opt/ofis`, asks for
+your Anthropic API key, sign-in password and domain, then starts Ofis behind Caddy with
+automatic HTTPS. No domain? Press Enter to use `<your-ip-with-dashes>.sslip.io`, a free name
+that points at your server. Run the same command again to update; your settings,
+conversations, memory and files are kept. (Not sure the server is big enough? Run
+`deploy/check-vps.sh` first; it changes nothing.)
+
+Doing it by hand instead: copy `.env.example` to `.env`, fill it in (with `TRUST_PROXY=1` and
+`DOMAIN`), then run `docker compose --profile https up -d --build`.
 
 **On Render or Railway:** create a service from this repository with `universal-agent` as the
 root directory and the Dockerfile as the build. Add the environment variables from
