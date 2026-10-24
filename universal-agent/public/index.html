@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ofis</title>
+  <meta name="description" content="Your private AI team: a program manager, a senior developer and a marketing manager.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/vendor/marked.js" defer></script>
+  <script src="/vendor/purify.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <!-- Sign in -->
+  <main id="login" class="login" hidden>
+    <form id="login-form" class="login-panel">
+      <h1 class="wordmark wordmark-large">Ofis</h1>
+      <p class="login-lede">Your AI team: a program manager, a senior developer and a marketing manager.</p>
+      <div class="lanes-legend" aria-hidden="true"><span class="lane-pm"></span><span class="lane-dev"></span><span class="lane-mkt"></span></div>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+      <p id="login-error" class="form-error" role="alert"></p>
+      <button type="submit" class="button-primary">Sign in</button>
+    </form>
+  </main>
+
+  <!-- App -->
+  <div id="app" class="shell" hidden>
+    <aside class="sidebar" aria-label="Navigation">
+      <div class="sidebar-top">
+        <span class="wordmark">Ofis</span>
+        <button id="menu-close" class="icon-button only-mobile" aria-label="Close menu">✕</button>
+      </div>
+      <button id="new-conversation" class="button-primary new-conversation">New conversation</button>
+
+      <nav class="views" aria-label="Sections">
+        <button class="view-link" data-view="chat" aria-current="page">Chat</button>
+        <button class="view-link" data-view="files">Files</button>
+        <button class="view-link" data-view="board">Task board</button>
+        <button class="view-link" data-view="memory">Memory</button>
+      </nav>
+
+      <h2 class="sidebar-heading">Conversations</h2>
+      <ul id="conversation-list" class="conversation-list"></ul>
+
+      <div class="team-roster">
+        <h2 class="sidebar-heading">Your team</h2>
+        <ul id="roster"></ul>
+      </div>
+      <button id="logout" class="link-button">Sign out</button>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button id="menu-open" class="icon-button only-mobile" aria-label="Open menu">☰</button>
+        <h1 id="view-title" class="view-title">Chat</h1>
+        <button id="delete-conversation" class="link-button danger" hidden>Delete</button>
+      </header>
+
+      <!-- Chat -->
+      <section id="view-chat" class="view view-chat">
+        <div class="chat-column">
+          <div id="messages" class="messages" aria-live="polite"></div>
+          <div id="empty-chat" class="empty-chat" hidden>
+            <h2>What should the team work on?</h2>
+            <p>Ask for one thing or a whole project. The team lead decides who picks it up.</p>
+            <div id="suggestions" class="suggestions"></div>
+          </div>
+          <div id="approvals" class="approvals"></div>
+          <form id="composer" class="composer">
+            <label for="message" class="visually-hidden">Message</label>
+            <textarea id="message" rows="3" placeholder="Plan a project, build an app, write a campaign…" required></textarea>
+            <div class="composer-bar">
+              <label class="toggle"><input type="checkbox" id="opt-web" checked> Web search</label>
+              <label class="toggle"><input type="checkbox" id="opt-review" checked> Review before replying</label>
+              <span id="working" class="working" hidden>Team is working</span>
+              <button type="submit" id="send" class="button-primary">Send</button>
+            </div>
+          </form>
+        </div>
+
+        <aside class="activity" aria-label="Team activity">
+          <div class="activity-head">
+            <h2>Activity</h2>
+            <div class="lane-names" aria-hidden="true">
+              <span class="lane-pm">PM</span><span class="lane-dev">Dev</span><span class="lane-mkt">Marketing</span>
+            </div>
+          </div>
+          <ol id="activity" class="lanes"></ol>
+          <p id="activity-empty" class="activity-empty">Steps appear here while the team works: who is doing what, and in which order.</p>
+        </aside>
+      </section>
+
+      <!-- Files -->
+      <section id="view-files" class="view view-files" hidden>
+        <div class="file-list-wrap">
+          <ul id="file-list" class="file-list"></ul>
+          <p id="files-empty" class="empty-note" hidden>Nothing here yet. Files the team creates show up in this list.</p>
+        </div>
+        <div class="file-viewer">
+          <div class="file-viewer-bar">
+            <span id="file-name" class="file-name">Select a file</span>
+            <a id="file-download" class="link-button" hidden>Download</a>
+          </div>
+          <pre id="file-content" class="file-content"></pre>
+        </div>
+      </section>
+
+      <!-- Board -->
+      <section id="view-board" class="view view-board" hidden>
+        <div id="board" class="board"></div>
+        <p id="board-empty" class="empty-note" hidden>The board is empty. Ask the Program Manager to plan something and the tasks land here.</p>
+      </section>
+
+      <!-- Memory -->
+      <section id="view-memory" class="view view-memory" hidden>
+        <div id="memory" class="memory"></div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>

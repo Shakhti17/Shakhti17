@@ -1,0 +1,35 @@
+# Local:   docker compose up -d                  -> http://localhost:3000
+# Server:  docker compose --profile https up -d  -> https://$DOMAIN (Caddy gets the certificate)
+# Secrets and settings live in a .env file next to this one (see .env.example).
+services:
+  ofis:
+    build: .
+    restart: unless-stopped
+    ports:
+      # Local only; Caddy reaches Ofis over the internal network. OFIS_PORT avoids clashes with other apps.
+      - "127.0.0.1:${OFIS_PORT:-3000}:3000"
+    env_file: .env
+    volumes:
+      - ofis-data:/data
+      - ofis-workspace:/workspace
+
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [ofis]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  ofis-data:
+  ofis-workspace:
+  caddy-data:
+  caddy-config:

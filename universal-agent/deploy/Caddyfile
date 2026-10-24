@@ -1,0 +1,8 @@
+# HTTPS in front of Ofis. Caddy obtains and renews the certificate for $DOMAIN.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy ofis:3000 {
+		# Stream live activity (Server-Sent Events) without buffering.
+		flush_interval -1
+	}
+}
