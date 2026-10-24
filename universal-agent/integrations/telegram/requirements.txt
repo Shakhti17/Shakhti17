@@ -1,0 +1,4 @@
+httpx>=0.27
+# plus the framework your bot already uses:
+#   python-telegram-bot>=21   (ptb_adapter.py)
+#   aiogram>=3.4              (aiogram_adapter.py)

@@ -146,6 +146,13 @@ short-lived identity tokens, which the Anthropic SDK exchanges for access automa
 precedence, so remove it). Your laptop, Render, Railway and plain VPS hosts have no identity
 provider, so use an API key there.
 
+## Use it from Telegram
+
+Connect your own Python Telegram bot (python-telegram-bot or aiogram), even on another server:
+messages go to the team, command approvals arrive as buttons, and files can be downloaded in the
+chat. Bots authenticate with `OFIS_API_TOKEN` (`Authorization: Bearer ...`), which
+`deploy/install.sh` creates. See [integrations/telegram](integrations/telegram/README.md).
+
 ## Safety
 
 - **One owner, one password.** Sign-in sets an HttpOnly, SameSite=Strict session cookie;

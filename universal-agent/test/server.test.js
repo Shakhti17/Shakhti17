@@ -30,13 +30,13 @@ function respond(body) {
   return null;
 }
 
-async function startPlatform(t) {
+async function startPlatform(t, { apiToken = "" } = {}) {
   const mock = await startMockApi(respond);
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ofis-"));
   const { createApp } = await import("../src/web/app.js");
   const { MemoryStore } = await import("../src/memory.js");
   const memory = await MemoryStore.open(path.join(dir, "data", "memory.json"));
-  const { app } = createApp({ workspace: path.join(dir, "workspace"), dataDir: path.join(dir, "data"), memory, password: PASSWORD });
+  const { app } = createApp({ workspace: path.join(dir, "workspace"), dataDir: path.join(dir, "data"), memory, password: PASSWORD, apiToken });
   const server = await new Promise((resolve) => {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));
   });
@@ -179,4 +179,34 @@ test("web platform: repeated wrong passwords are locked out", async (t) => {
     assert.equal((await call("/api/login", { method: "POST", body: { password: "guess" } })).status, 401);
   }
   assert.equal((await call("/api/login", { method: "POST", body: { password: PASSWORD } })).status, 429);
+});
+
+test("web platform: bots can use the API with a bearer token", async (t) => {
+  const TOKEN = "a".repeat(20) + "-bot-token-" + "b".repeat(20);
+  const { base } = await startPlatform(t, { apiToken: TOKEN });
+  const bot = (p, { method = "GET", body, token = TOKEN } = {}) =>
+    fetch(base + p, {
+      method,
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+  assert.equal((await bot("/api/conversations")).status, 200);
+  assert.deepEqual(await (await bot("/api/me")).json(), { authenticated: true });
+  assert.equal((await bot("/api/conversations", { token: "wrong-token" })).status, 401);
+  assert.equal((await bot("/api/conversations", { token: TOKEN + "x" })).status, 401);
+
+  // A full exchange over the token: start a conversation and stream its events.
+  const conversation = await (await bot("/api/conversations", { method: "POST" })).json();
+  const events = await bot(`/api/conversations/${conversation.id}/events`);
+  assert.equal(events.headers.get("content-type"), "text/event-stream");
+  await events.body.cancel();
+});
+
+test("web platform: bearer tokens are refused when no API token is configured", async (t) => {
+  const { base } = await startPlatform(t);
+  const res = await fetch(`${base}/api/conversations`, { headers: { authorization: "Bearer anything-at-all-long-enough-0123456789" } });
+  assert.equal(res.status, 401);
+  const { createAuth } = await import("../src/web/auth.js");
+  assert.throws(() => createAuth({ password: PASSWORD, apiToken: "short" }), /at least 32/);
 });
