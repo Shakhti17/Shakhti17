@@ -107,7 +107,46 @@ fi
 DOM=$(grep -E '^DOMAIN=' .env | cut -d= -f2-)
 [ -n "$DOM" ] || die "DOMAIN is empty in $APP_DIR/.env"
 
-# ---------- 5. firewall ----------
+# ---------- 5. ports ----------
+say "Checking ports"
+# Stop a previous Ofis run first so its own ports don't look taken (data volumes are kept).
+docker compose --profile https down --remove-orphans >/dev/null 2>&1 || true
+
+port_in_use() {
+  # Something answers on the port (works even where `ss` is missing)...
+  timeout 2 bash -c "echo > /dev/tcp/127.0.0.1/$1" 2>/dev/null && return 0
+  # ...or something listens on it, or a Docker container has claimed it.
+  ss -ltnH "( sport = :$1 )" 2>/dev/null | grep -q . && return 0
+  docker ps --format '{{.Ports}}' 2>/dev/null | grep -qE "(^|[ ,:])$1->" && return 0
+  return 1
+}
+port_owner() {
+  ss -ltnpH "( sport = :$1 )" 2>/dev/null | grep -o 'users:(("[^"]*"' | head -1 | cut -d'"' -f2
+  docker ps --format '{{.Names}} {{.Ports}}' 2>/dev/null | grep -E "(^|[ ,:])$1->" | awk '{print "container " $1}'
+}
+set_env() {
+  if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else echo "$1=$2" >> .env; fi
+}
+
+OFIS_PORT=$(grep -E '^OFIS_PORT=' .env | cut -d= -f2- || true)
+if [ -z "$OFIS_PORT" ] || port_in_use "$OFIS_PORT"; then
+  for candidate in $(seq 3000 3100); do
+    if ! port_in_use "$candidate"; then OFIS_PORT=$candidate; break; fi
+  done
+fi
+[ -n "$OFIS_PORT" ] || die "no free port between 3000 and 3100 for Ofis"
+set_env OFIS_PORT "$OFIS_PORT"
+info "Ofis will listen on 127.0.0.1:$OFIS_PORT (private; the public site goes through HTTPS)"
+
+BLOCKED=""
+for p in 80 443; do
+  if port_in_use "$p"; then
+    BLOCKED="$BLOCKED $p"
+    info "Port $p is already used by: $(port_owner "$p" | tr '\n' ' ')"
+  fi
+done
+
+# ---------- 6. firewall ----------
 if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   say "Opening ports 80 and 443 in ufw"
   ufw allow OpenSSH >/dev/null || true
@@ -115,13 +154,18 @@ if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow 443/tcp >/dev/null
 fi
 
-# ---------- 6. start ----------
+# ---------- 7. start ----------
 say "Building and starting Ofis (the first build takes a few minutes)"
-docker compose --profile https up -d --build --remove-orphans
+if [ -n "$BLOCKED" ]; then
+  # Start Ofis itself so nothing is wasted, but not Caddy, which needs 80 and 443.
+  docker compose up -d --build --remove-orphans ofis
+else
+  docker compose --profile https up -d --build --remove-orphans
+fi
 
 say "Waiting for Ofis to answer"
 for _ in $(seq 1 60); do
-  if curl -fsS -m 3 http://127.0.0.1:3000/api/me >/dev/null 2>&1; then
+  if curl -fsS -m 3 "http://127.0.0.1:$OFIS_PORT/api/me" >/dev/null 2>&1; then
     READY=1
     break
   fi
@@ -130,6 +174,13 @@ done
 if [ "${READY:-0}" != 1 ]; then
   docker compose logs --tail 40 ofis || true
   die "Ofis did not start; the logs above show why"
+fi
+
+if [ -n "$BLOCKED" ]; then
+  say "Ofis is running, but HTTPS could not start"
+  info "Port(s)$BLOCKED are taken by another program (listed above). Caddy needs ports 80 and 443"
+  info "to get a free HTTPS certificate. Send this output to Claude to finish the setup."
+  exit 2
 fi
 
 say "Done"

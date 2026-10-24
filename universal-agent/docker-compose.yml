@@ -6,7 +6,8 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      # Local only; Caddy reaches Ofis over the internal network. OFIS_PORT avoids clashes with other apps.
+      - "127.0.0.1:${OFIS_PORT:-3000}:3000"
     env_file: .env
     volumes:
       - ofis-data:/data
