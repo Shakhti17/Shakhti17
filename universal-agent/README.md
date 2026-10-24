@@ -63,13 +63,13 @@ separately from a Claude.ai subscription).
 ```bash
 cd universal-agent
 npm install
-export ANTHROPIC_API_KEY=sk-ant-...
-export APP_PASSWORD='choose-a-long-password'
+cp .env.example .env      # then put your ANTHROPIC_API_KEY and APP_PASSWORD in .env
 npm start
 ```
 
-Open http://localhost:3000 and sign in with your password. (Windows PowerShell:
-`$env:ANTHROPIC_API_KEY="sk-ant-..."` and `$env:APP_PASSWORD="..."`.)
+Open http://localhost:3000 and sign in with your password. Both `npm start` and `npm run chat`
+read `.env` automatically (it is git-ignored, so your key never reaches GitHub); variables set in
+your shell take precedence.
 
 ### What's in the web app
 

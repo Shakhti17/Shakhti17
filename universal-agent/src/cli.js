@@ -9,7 +9,7 @@ import { Team } from "./team.js";
 import { AGENTS } from "./agents.js";
 import { MemoryStore } from "./memory.js";
 import { describeError } from "./errors.js";
-import { credentialSource, MISSING_CREDENTIALS } from "./credentials.js";
+import { credentialSource, loadDotEnv, MISSING_CREDENTIALS } from "./credentials.js";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -42,6 +42,7 @@ if (values.help) {
   process.exit(0);
 }
 
+loadDotEnv();
 if (!credentialSource()) {
   console.error(MISSING_CREDENTIALS);
   process.exit(1);

@@ -4,6 +4,11 @@ import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+/** Load ./.env if present. Variables already set in the environment win. */
+export function loadDotEnv(file = ".env") {
+  if (existsSync(file) && typeof process.loadEnvFile === "function") process.loadEnvFile(file);
+}
+
 export function credentialSource(env = process.env) {
   if (env.ANTHROPIC_API_KEY) return "api key";
   if (env.ANTHROPIC_AUTH_TOKEN) return "auth token";
