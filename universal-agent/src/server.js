@@ -4,7 +4,7 @@
 import path from "node:path";
 import { createApp } from "./web/app.js";
 import { MemoryStore } from "./memory.js";
-import { credentialSource, loadDotEnv, MISSING_CREDENTIALS } from "./credentials.js";
+import { credentialProblem, credentialSource, loadDotEnv, MISSING_CREDENTIALS } from "./credentials.js";
 
 loadDotEnv();
 const env = process.env;
@@ -16,6 +16,10 @@ if (!env.APP_PASSWORD || env.APP_PASSWORD.length < 8) {
 const credentials = credentialSource(env);
 if (!credentials) {
   console.error(MISSING_CREDENTIALS);
+  process.exit(1);
+}
+if (credentialProblem(env)) {
+  console.error(credentialProblem(env));
   process.exit(1);
 }
 if (!env.SESSION_SECRET) {

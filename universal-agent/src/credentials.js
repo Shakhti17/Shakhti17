@@ -24,6 +24,25 @@ export function credentialSource(env = process.env) {
   return null;
 }
 
+/**
+ * Problems with credential values that would otherwise fail on every request with
+ * a cryptic error, e.g. a key copied from a UI that masks secrets with "•".
+ */
+export function credentialProblem(env = process.env) {
+  for (const name of ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"]) {
+    const value = env[name];
+    if (!value) continue;
+    const bad = [...value].findIndex((ch) => ch.charCodeAt(0) > 126 || ch.charCodeAt(0) < 33);
+    if (bad !== -1) {
+      return (
+        `${name} contains an invalid character at position ${bad + 1} ("${value[bad]}"). ` +
+        "It was probably copied from a page that hides part of the key; paste the full key again."
+      );
+    }
+  }
+  return null;
+}
+
 export const MISSING_CREDENTIALS =
   "No Anthropic credentials found. Set ANTHROPIC_API_KEY, configure identity federation " +
   "(ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID, ANTHROPIC_SERVICE_ACCOUNT_ID and " +

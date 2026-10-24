@@ -159,3 +159,11 @@ test("parallel memory saves are all persisted", async () => {
   assert.equal(reopened.data.semantic.length, 10);
   await fs.rm(dir, { recursive: true });
 });
+
+test("credentialProblem catches keys mangled by masked copying", async () => {
+  const { credentialProblem } = await import("../src/credentials.js");
+  assert.equal(credentialProblem({ ANTHROPIC_API_KEY: "sk-ant-api03-abcDEF_123-xyz" }), null);
+  const problem = credentialProblem({ ANTHROPIC_API_KEY: "sk-ant-usr-10oM••••••" });
+  assert.match(problem, /position 16 \("•"\)/);
+  assert.match(credentialProblem({ ANTHROPIC_API_KEY: "sk-ant key" }), /position 7/);
+});
